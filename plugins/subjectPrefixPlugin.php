@@ -58,21 +58,25 @@
     }
     
     function activate() {
-    	$this->pfxtbl = $GLOBALS['tables']['subjectPrefixPlugin_pfx'];  	
+    	$this->pfxtbl = $GLOBALS['tables']['subjectPrefixPlugin_prefix'];  	
     	return true;
+    }
+    
+    private function endsWithPunct($str) {
+    	$puncChars = array('!', '$', '#', '^', '*', ':', ';', ',', '.', '?', '`'. '~');
+		return in_array (substr($str, -1), $puncChars);
     }
     
     /* Create a prefix from an array of list IDs */
 	private function createPrefix ($lists = array())
 	{
-		$mynames = array();
 		
 		// Get the list names for this message
     	$lists = array_keys($lists);
     	$pfxary = array ();
 		foreach ($lists as $listid) {
-    		$query = sprintf("select prefix from %s where id=%d", $this->pfxtbl, $lisdid);
-    		if ($row = Sql_Fetch_Row($query)) 
+    		$query = sprintf("select prefix from %s where id=%d", $this->pfxtbl, $listid);
+    		if ($row = Sql_Fetch_Row_Query($query)) 
     			$pfxary[$row[0]] = 1;
     	}
     	
@@ -87,10 +91,15 @@
     	// More than one prefix. Put them together separated by commas
     	$fl = true;
     	foreach ($pfxary as $val) {
-    		if (!$fl)
-    			$pfx .= ',';
+    		if (!$fl) {
+    			if ($fl2)
+    				$pfx .= ' ';
+    			else
+    				$pfx .= ', ';
+    		}
     		$pfx .= $val;
     		$fl = false;
+    		$fl2 = $this->endsWithPunct($val);
     	}
     	
     	return $pfx;
@@ -119,13 +128,13 @@
     $pfx = '';
     if (isset($list['id'])) {
     	$query = sprintf("select prefix from %s where id=%d", $this->pfxtbl, $list['id']);
-    	if ($row = Sql_Fetch_Row($query))
+    	if ($row = Sql_Fetch_Row_Query($query))
     		$pfx = $row[0];
     }
     $str = <<<EOD
-    <p>
-<label>Subject line prefix for this list:<input type="text" name="prefix" value="$pfx" maxlength="255" /></label>
-</p>
+    <p><fieldset>
+<label>Subject line prefix for this list:<input type="text" name="prefx" value="$pfx" maxlength="255" /></label>
+</fieldset></p>
 EOD;
     	return $str;
  	 }
@@ -134,10 +143,10 @@ EOD;
     # purpose: process edit list page (usually save fields)
     # return false if failed
     # 200710 Bas
-    	$pfx = trim($_POST['prefix']);
+    	$pfx = trim($_POST['prefx']); // The subscriber list from already has a hidden field named 'prefix'
     	$query = sprintf("select prefix from %s where id=%d", $this->pfxtbl, $id);
-    	$row = Sql_Fetch_Row($query);
-    	
+    	$row = Sql_Fetch_Row_Query($query);
+ 
     	if (!$pfx) {
     		if ($row) 
     			Sql_Query (sprintf("delete from %s where id=%d", $this->pfxtbl, $id));
@@ -147,7 +156,7 @@ EOD;
     	if ($row)
     		$query = sprintf("update %s set prefix='%s' where id=%d", $this->pfxtbl, Sql_Escape($pfx), $id);
     	else	
-    		$query = sprintf("insert into %s (id, prefix) values (%d,'%s')", $this->pfxtbl, Sql_Escape($pfx), $id);
+    		$query = sprintf("insert into %s (id, prefix) values (%d,'%s')", $this->pfxtbl, $id, Sql_Escape($pfx));
     	Sql_Query($query);
     	
 		return true;
@@ -169,7 +178,7 @@ EOD;
   
   	public function messageHeaders($mail)
   	{
-  		$mail->Subject = $this->curpfx . $mail->Subject;  // Add the prefix
+  		$mail->Subject = $this->curpfx . ' ' . $mail->Subject;  // Add the prefix
   	
     	return array(); //@@@
   	}
