@@ -1,7 +1,7 @@
 <?php
 
 /**
- * generalSubjectPrefix plugin version 1.0a1
+ * generalSubjectPrefix plugin version 1.0a1.1
  * 
  *
  * @category  phplist
@@ -35,7 +35,7 @@
      *  Inherited variables
      */
     public $name = 'Subject Prefix Plugin';
-    public $version = '1.0a1';
+    public $version = '1.0a1.1';
     public $enabled = false;
     public $authors = 'Arnold Lesikar';
     public $description = 'Allows prefixes for the subject line of messages';
@@ -60,6 +60,10 @@
     function activate() {
     	$this->pfxtbl = $GLOBALS['tables']['subjectPrefixPlugin_prefix'];  	
     	return true;
+    }
+    
+    // No menu items in administrative menu on dashboard
+    function adminmenu() {
     }
     
     private function endsWithPunct($str) {
